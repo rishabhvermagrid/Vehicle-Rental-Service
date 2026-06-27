@@ -35,7 +35,16 @@ spring:
         - id: vehicle-service
           uri: http://${VEHICLE_SERVICE_HOST:localhost}:8082
           predicates:
-            - Path=/api/**
+            - Path=/api/vehicles/**
+          filters:
+            - PreserveHostHeader
+
+        # ── Booking Service ─────────────────────────────────────────────────
+        # SessionAuthFilter runs here: validates session → injects X-User-Id, X-User-Role
+        - id: booking-service
+          uri: http://${BOOKING_SERVICE_HOST:localhost}:8083
+          predicates:
+            - Path=/api/bookings/**
           filters:
             - PreserveHostHeader
 
