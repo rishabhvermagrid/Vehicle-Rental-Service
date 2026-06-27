@@ -1,0 +1,59 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+
+  cloud:
+    gateway:
+      # Global CORS — useful when a frontend calls the gateway directly
+      globalcors:
+        corsConfigurations:
+          '[/**]':
+            allowedOrigins: "*"
+            allowedMethods: "*"
+            allowedHeaders: "*"
+            exposedHeaders: "Set-Cookie"
+
+      # Forward Set-Cookie headers from downstream services back to the client
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+
+      routes:
+        # ── Auth Service ────────────────────────────────────────────────────
+        # SessionAuthFilter is bypassed for these paths (auth-service owns its own security)
+        - id: auth-service
+          uri: http://${AUTH_SERVICE_HOST:localhost}:8081
+          predicates:
+            - Path=/auth/**, /admin/**
+          filters:
+            - PreserveHostHeader
+
+        # ── Vehicle Service ─────────────────────────────────────────────────
+        # SessionAuthFilter runs here: validates session → injects X-User-Id, X-User-Role
+        - id: vehicle-service
+          uri: http://${VEHICLE_SERVICE_HOST:localhost}:8082
+          predicates:
+            - Path=/api/**
+          filters:
+            - PreserveHostHeader
+
+# URL the gateway uses internally to reach auth-service for session validation
+auth:
+  service:
+    url: http://${AUTH_SERVICE_HOST:localhost}:8081
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health, info
+  endpoint:
+    health:
+      show-details: always
+
+logging:
+  level:
+    com.rental.gateway: INFO
+    org.springframework.cloud.gateway: WARN
