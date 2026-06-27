@@ -108,7 +108,7 @@ services:
 
   auth-service:
     build:
-      context: ./user-service
+      context: ./auth-service
       dockerfile: Dockerfile
     container_name: auth-service
     restart: unless-stopped
