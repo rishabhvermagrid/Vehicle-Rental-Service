@@ -30,7 +30,7 @@ public class BookingController {
         String role = extractRole();
         BookingResponse booking = bookingService.createBooking(request, Long.parseLong(userId), role);
         return ResponseEntity.status(HttpStatus.CREATED)
-                .body(ApiResponse.success("Booking created successfully.", booking));
+                .body(ApiResponse.success(booking, "Booking created successfully."));
     }
 
     @GetMapping("/{id}")
@@ -40,7 +40,7 @@ public class BookingController {
 
         String role = extractRole();
         BookingResponse booking = bookingService.getBookingById(id, Long.parseLong(userId), role);
-        return ResponseEntity.ok(ApiResponse.success("Booking retrieved successfully.", booking));
+        return ResponseEntity.ok(ApiResponse.success(booking, "Booking retrieved successfully."));
     }
 
     @GetMapping("/my")
@@ -48,19 +48,19 @@ public class BookingController {
             @AuthenticationPrincipal String userId) {
 
         List<BookingResponse> bookings = bookingService.getMyBookings(Long.parseLong(userId));
-        return ResponseEntity.ok(ApiResponse.success("Bookings retrieved successfully.", bookings));
+        return ResponseEntity.ok(ApiResponse.success(bookings, "Bookings retrieved successfully."));
     }
 
     @GetMapping
     public ResponseEntity<ApiResponse<List<BookingResponse>>> getAllBookings() {
         List<BookingResponse> bookings = bookingService.getAllBookings();
-        return ResponseEntity.ok(ApiResponse.success("All bookings retrieved successfully.", bookings));
+        return ResponseEntity.ok(ApiResponse.success(bookings, "All bookings retrieved successfully."));
     }
 
     @PatchMapping("/{id}/confirm")
     public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@PathVariable Long id) {
         BookingResponse booking = bookingService.confirmBooking(id);
-        return ResponseEntity.ok(ApiResponse.success("Booking confirmed successfully.", booking));
+        return ResponseEntity.ok(ApiResponse.success(booking, "Booking confirmed successfully."));
     }
 
     @PatchMapping("/{id}/cancel")
@@ -70,13 +70,13 @@ public class BookingController {
 
         String role = extractRole();
         BookingResponse booking = bookingService.cancelBooking(id, Long.parseLong(userId), role);
-        return ResponseEntity.ok(ApiResponse.success("Booking cancelled successfully.", booking));
+        return ResponseEntity.ok(ApiResponse.success(booking, "Booking cancelled successfully."));
     }
 
     @PatchMapping("/{id}/complete")
     public ResponseEntity<ApiResponse<BookingResponse>> completeBooking(@PathVariable Long id) {
         BookingResponse booking = bookingService.completeBooking(id);
-        return ResponseEntity.ok(ApiResponse.success("Booking completed successfully.", booking));
+        return ResponseEntity.ok(ApiResponse.success(booking, "Booking completed successfully."));
     }
 
     private String extractRole() {

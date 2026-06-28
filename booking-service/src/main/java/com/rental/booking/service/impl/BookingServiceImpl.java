@@ -84,7 +84,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional(readOnly = true)
     public BookingResponse getBookingById(Long id, Long userId, String userRole) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+                .orElseThrow(() -> new BookingNotFoundException(id));
 
         // CUSTOMER can only view their own bookings
         if ("CUSTOMER".equals(userRole) && !booking.getCustomerId().equals(userId)) {
@@ -116,7 +116,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse confirmBooking(Long id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+                .orElseThrow(() -> new BookingNotFoundException(id));
 
         if (booking.getStatus() != BookingStatus.PENDING) {
             throw new InvalidBookingException(
@@ -135,7 +135,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse cancelBooking(Long id, Long userId, String userRole) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+                .orElseThrow(() -> new BookingNotFoundException(id));
 
         // CUSTOMER can only cancel their own bookings
         if ("CUSTOMER".equals(userRole) && !booking.getCustomerId().equals(userId)) {
@@ -162,7 +162,7 @@ public class BookingServiceImpl implements BookingService {
     @Transactional
     public BookingResponse completeBooking(Long id) {
         Booking booking = bookingRepository.findById(id)
-                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+                .orElseThrow(() -> new BookingNotFoundException(id));
 
         if (booking.getStatus() != BookingStatus.CONFIRMED) {
             throw new InvalidBookingException(

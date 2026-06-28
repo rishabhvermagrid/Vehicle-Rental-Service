@@ -18,8 +18,57 @@ version: "3.9"
 #   3307 → vehicle-mysql
 #   3308 → booking-mysql
 #   6379 → redis
+#
+# Observability ports:
+#   9090 → Prometheus       ← metrics storage
+#   3000 → Grafana          ← metrics dashboard  (admin/admin)
+#   9411 → Zipkin           ← distributed traces
 
 services:
+
+  # ── Observability ────────────────────────────────────────────────────────────
+
+  zipkin:
+    image: openzipkin/zipkin:3
+    container_name: zipkin
+    restart: unless-stopped
+    ports:
+      - "9411:9411"
+    networks:
+      - rental-network
+
+  prometheus:
+    image: prom/prometheus:v2.51.0
+    container_name: prometheus
+    restart: unless-stopped
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./observability/prometheus.yml:/etc/prometheus/prometheus.yml
+      - prometheus-data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.enable-lifecycle'
+    networks:
+      - rental-network
+
+  grafana:
+    image: grafana/grafana:10.4.0
+    container_name: grafana
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - ./observability/grafana/provisioning:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    depends_on:
+      - prometheus
+    networks:
+      - rental-network
 
   # ── Infrastructure ──────────────────────────────────────────────────────────
 
@@ -121,6 +170,7 @@ services:
       SPRING_DATA_REDIS_HOST: redis
       SPRING_DATA_REDIS_PORT: 6379
       SPRING_SESSION_REDIS_NAMESPACE: auth:session
+      ZIPKIN_HOST: zipkin
     depends_on:
       auth-mysql:
         condition: service_healthy
@@ -143,6 +193,7 @@ services:
       MYSQL_DATABASE: vehicle_db
       MYSQL_USER: vehicle_user
       MYSQL_PASSWORD: vehicle_pass
+      ZIPKIN_HOST: zipkin
     depends_on:
       vehicle-mysql:
         condition: service_healthy
@@ -164,6 +215,7 @@ services:
       MYSQL_USER: booking_user
       MYSQL_PASSWORD: booking_pass
       VEHICLE_SERVICE_HOST: vehicle-service
+      ZIPKIN_HOST: zipkin
     depends_on:
       booking-mysql:
         condition: service_healthy
@@ -184,6 +236,7 @@ services:
       AUTH_SERVICE_HOST: auth-service
       VEHICLE_SERVICE_HOST: vehicle-service
       BOOKING_SERVICE_HOST: booking-service
+      ZIPKIN_HOST: zipkin
     depends_on:
       - auth-service
       - vehicle-service
@@ -198,6 +251,8 @@ volumes:
   auth-mysql-data:
   vehicle-mysql-data:
   booking-mysql-data:
+  prometheus-data:
+  grafana-data:
 
 networks:
   rental-network:
