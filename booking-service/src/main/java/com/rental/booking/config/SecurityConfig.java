@@ -47,6 +47,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.GET, "/api/bookings/**")
                         .hasAnyRole("ADMIN", "STAFF", "CUSTOMER")
 
+                // Confirm booking — ADMIN and STAFF only
+                .requestMatchers(HttpMethod.PATCH, "/api/bookings/*/confirm")
+                        .hasAnyRole("ADMIN", "STAFF")
+
                 // Cancel booking — all authenticated roles (service enforces ownership for CUSTOMER)
                 .requestMatchers(HttpMethod.PATCH, "/api/bookings/*/cancel")
                         .hasAnyRole("ADMIN", "STAFF", "CUSTOMER")

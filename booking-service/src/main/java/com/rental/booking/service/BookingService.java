@@ -15,6 +15,8 @@ public interface BookingService {
 
     List<BookingResponse> getAllBookings();
 
+    BookingResponse confirmBooking(Long id);
+
     BookingResponse cancelBooking(Long id, Long userId, String userRole);
 
     BookingResponse completeBooking(Long id);

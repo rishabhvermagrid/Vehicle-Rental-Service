@@ -114,6 +114,25 @@ public class BookingServiceImpl implements BookingService {
 
     @Override
     @Transactional
+    public BookingResponse confirmBooking(Long id) {
+        Booking booking = bookingRepository.findById(id)
+                .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));
+
+        if (booking.getStatus() != BookingStatus.PENDING) {
+            throw new InvalidBookingException(
+                    "Only PENDING bookings can be confirmed. Current status: " + booking.getStatus());
+        }
+
+        booking.setStatus(BookingStatus.CONFIRMED);
+        booking = bookingRepository.save(booking);
+
+        log.info("Booking confirmed: id={}", booking.getId());
+
+        return BookingResponse.from(booking);
+    }
+
+    @Override
+    @Transactional
     public BookingResponse cancelBooking(Long id, Long userId, String userRole) {
         Booking booking = bookingRepository.findById(id)
                 .orElseThrow(() -> new BookingNotFoundException("Booking not found with id: " + id));

@@ -57,6 +57,12 @@ public class BookingController {
         return ResponseEntity.ok(ApiResponse.success("All bookings retrieved successfully.", bookings));
     }
 
+    @PatchMapping("/{id}/confirm")
+    public ResponseEntity<ApiResponse<BookingResponse>> confirmBooking(@PathVariable Long id) {
+        BookingResponse booking = bookingService.confirmBooking(id);
+        return ResponseEntity.ok(ApiResponse.success("Booking confirmed successfully.", booking));
+    }
+
     @PatchMapping("/{id}/cancel")
     public ResponseEntity<ApiResponse<BookingResponse>> cancelBooking(
             @PathVariable Long id,

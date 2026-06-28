@@ -807,6 +807,35 @@
           ]
         },
         {
+          "name": "Confirm Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/confirm",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "confirm"]
+            },
+            "description": "Confirm a booking — moves it from PENDING to CONFIRMED.\n\n**Required role:** ADMIN or STAFF only\n\nOnly PENDING bookings can be confirmed. Once confirmed, it can be completed or cancelled."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Booking confirmed', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.status).to.equal('CONFIRMED');",
+                  "    console.log('Booking', body.data.id, 'is now CONFIRMED');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
           "name": "Cancel Booking",
           "request": {
             "method": "PATCH",
