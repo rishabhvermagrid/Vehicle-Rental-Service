@@ -5,6 +5,11 @@ spring:
   application:
     name: api-gateway
 
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: 6379
+
   cloud:
     gateway:
       # Global CORS — useful when a frontend calls the gateway directly
@@ -32,21 +37,35 @@ spring:
 
         # ── Vehicle Service ─────────────────────────────────────────────────
         # SessionAuthFilter runs here: validates session → injects X-User-Id, X-User-Role
+        # Rate limit: 20 req/s per user, burst up to 40
         - id: vehicle-service
           uri: http://${VEHICLE_SERVICE_HOST:localhost}:8082
           predicates:
             - Path=/api/vehicles/**
           filters:
             - PreserveHostHeader
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
 
         # ── Booking Service ─────────────────────────────────────────────────
         # SessionAuthFilter runs here: validates session → injects X-User-Id, X-User-Role
+        # Rate limit: 10 req/s per user, burst up to 20
         - id: booking-service
           uri: http://${BOOKING_SERVICE_HOST:localhost}:8083
           predicates:
             - Path=/api/bookings/**
           filters:
             - PreserveHostHeader
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                redis-rate-limiter.requestedTokens: 1
+                key-resolver: "#{@userKeyResolver}"
 
 # URL the gateway uses internally to reach auth-service for session validation
 auth:

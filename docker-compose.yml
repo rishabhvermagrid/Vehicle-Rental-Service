@@ -237,6 +237,7 @@ services:
       VEHICLE_SERVICE_HOST: vehicle-service
       BOOKING_SERVICE_HOST: booking-service
       ZIPKIN_HOST: zipkin
+      REDIS_HOST: redis
     depends_on:
       - auth-service
       - vehicle-service
