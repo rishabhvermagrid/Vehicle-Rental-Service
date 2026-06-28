@@ -23,6 +23,12 @@
       "value": "1",
       "type": "string",
       "description": "Auto-set by Login test script"
+    },
+    {
+      "key": "bookingId",
+      "value": "1",
+      "type": "string",
+      "description": "Auto-set by Create Booking test script"
     }
   ],
   "item": [
@@ -633,6 +639,234 @@
       ]
     },
     {
+      "name": "Bookings",
+      "description": "Booking management endpoints — all go through API Gateway which validates session and injects role headers automatically.\n\n**Flow:** Login → Create a Vehicle (ADMIN) → Create Booking (any role) → Cancel or Complete",
+      "item": [
+        {
+          "name": "Create Booking",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"startDate\": \"2026-07-10\",\n  \"endDate\": \"2026-07-15\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Create a new booking.\n\n**Required role:** ADMIN, STAFF, or CUSTOMER\n\n- CUSTOMER: omit `customerId` — it is taken from your session automatically\n- ADMIN/STAFF: include `customerId` to book on behalf of a customer\n\n`totalDays` and `totalAmount` are calculated server-side.\n\nVehicle must have status `AVAILABLE`. It will be set to `BOOKED` after creation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Booking created', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.expect(body.data.status).to.equal('PENDING');",
+                  "    pm.expect(body.data.totalDays).to.be.a('number');",
+                  "    pm.expect(body.data.totalAmount).to.be.a('number');",
+                  "    pm.collectionVariables.set('bookingId', body.data.id);",
+                  "    console.log('Created booking id:', body.data.id, '| Total:', body.data.totalAmount);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Create Booking — Staff books for Customer",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"customerId\": {{userId}},\n  \"startDate\": \"2026-08-01\",\n  \"endDate\": \"2026-08-05\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "ADMIN or STAFF booking on behalf of a customer.\n\n`customerId` is required here — the service uses it instead of the session user ID.\n\nLogin as ADMIN or STAFF before using this request."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Booking created for customer', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.true;",
+                  "    pm.collectionVariables.set('bookingId', body.data.id);",
+                  "    console.log('Booking for customerId:', body.data.customerId);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get All Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Returns all bookings in the system.\n\n**Required role:** ADMIN or STAFF\n\nCUSTOMER will receive 403 — they should use Get My Bookings instead."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    console.log('Total bookings:', body.data.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get My Bookings",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/my",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "my"]
+            },
+            "description": "Returns bookings belonging to the currently logged-in customer.\n\n**Required role:** CUSTOMER only\n\nThe customer ID is taken from the session — no parameter needed."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns my bookings', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data).to.be.an('array');",
+                  "    console.log('My bookings count:', body.data.length);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Get Booking by ID",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}"]
+            },
+            "description": "Get a single booking by ID.\n\n**Required role:** ADMIN, STAFF, or CUSTOMER\n\nCUSTOMER can only fetch their own bookings — returns 403 for others."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Booking returned', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.id).to.equal(parseInt(pm.collectionVariables.get('bookingId')));",
+                  "    console.log('Booking status:', body.data.status, '| Amount:', body.data.totalAmount);",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Cancel Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/cancel",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "cancel"]
+            },
+            "description": "Cancel a booking.\n\n**Required role:** ADMIN, STAFF, or CUSTOMER\n\n- CUSTOMER can only cancel their own bookings\n- Only PENDING or CONFIRMED bookings can be cancelled\n\nThe vehicle is set back to AVAILABLE after cancellation."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Booking cancelled', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.status).to.equal('CANCELLED');",
+                  "    console.log('Booking', body.data.id, 'cancelled — vehicle released to AVAILABLE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Complete Booking",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "complete"]
+            },
+            "description": "Mark a booking as completed.\n\n**Required role:** ADMIN or STAFF only\n\nOnly CONFIRMED bookings can be completed.\n\nThe vehicle is set back to AVAILABLE after completion."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Booking completed', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.data.status).to.equal('COMPLETED');",
+                  "    console.log('Booking', body.data.id, 'completed — vehicle released to AVAILABLE');",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        }
+      ]
+    },
+    {
       "name": "Error Cases",
       "description": "Requests that should return errors — useful for verifying role enforcement and validation",
       "item": [
@@ -804,6 +1038,124 @@
               "path": ["api", "vehicles", "{{vehicleId}}", "status"]
             },
             "description": "Expected: 400 — Invalid enum value. Allowed: AVAILABLE, BOOKED, UNDER_MAINTENANCE."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking — Vehicle Already Booked",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"startDate\": \"2026-07-10\",\n  \"endDate\": \"2026-07-15\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "Try to book a vehicle that already has an active booking.\n\nRun this AFTER Create Booking while that booking is still PENDING.\n\nExpected: 409 Conflict."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 409', () => pm.response.to.have.status(409));",
+                  "pm.test('Conflict message', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking — Invalid Dates",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"vehicleId\": {{vehicleId}},\n  \"startDate\": \"2026-07-15\",\n  \"endDate\": \"2026-07-10\"\n}",
+              "options": { "raw": { "language": "json" } }
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings"]
+            },
+            "description": "endDate is before startDate.\n\nExpected: 400 — End date must be after start date."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 400', () => pm.response.to.have.status(400));",
+                  "pm.test('Invalid date error', () => {",
+                  "    const body = pm.response.json();",
+                  "    pm.expect(body.success).to.be.false;",
+                  "});"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking — Not Found",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/99999",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "99999"]
+            },
+            "description": "Expected: 404 — Booking not found with id: 99999."
+          },
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status is 404', () => pm.response.to.have.status(404));"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ]
+        },
+        {
+          "name": "Booking — Complete a PENDING booking",
+          "request": {
+            "method": "PATCH",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/bookings/{{bookingId}}/complete",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "bookings", "{{bookingId}}", "complete"]
+            },
+            "description": "Only CONFIRMED bookings can be completed. Trying to complete a PENDING one.\n\nExpected: 400 — Only CONFIRMED bookings can be marked as completed."
           },
           "event": [
             {

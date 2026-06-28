@@ -71,8 +71,8 @@ public class BookingServiceImpl implements BookingService {
 
         booking = bookingRepository.save(booking);
 
-        // Mark vehicle as RENTED
-        vehicleClient.updateVehicleStatus(request.getVehicleId(), "RENTED");
+        // Mark vehicle as BOOKED
+        vehicleClient.updateVehicleStatus(request.getVehicleId(), "BOOKED");
 
         log.info("Booking created: id={}, vehicleId={}, customerId={}", booking.getId(),
                 booking.getVehicleId(), booking.getCustomerId());
